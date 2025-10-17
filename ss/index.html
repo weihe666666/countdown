@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Countdown</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --accent:#23c55e; --muted:#94a3b8; --text:#e5e7eb;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: radial-gradient(1200px 600px at 70% -10%, #1f2430 0%, var(--bg) 40%) fixed;
+    color:var(--text); display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .app{width:min(1100px,100%); display:grid; gap:22px}
+  header{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
+  header h1{margin:0; font-size:clamp(18px,2.5vw,22px); font-weight:600; letter-spacing:.4px; color:#cbd5e1}
+  .mode{display:flex; gap:8px; align-items:center; opacity:.85}
+  .pill{background:#0b0e13;border:1px solid #263044;color:#b7c3d5;padding:8px 12px;border-radius:999px}
+  .board{display:grid; grid-template-columns:1fr auto; gap:22px}
+  .digits{
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px;
+  }
+  .tile{
+    background:linear-gradient(180deg, #1a1f29 0%, #12151c 100%);
+    border:1px solid #293041; border-radius:24px; padding:18px; position:relative;
+    box-shadow: 0 6px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
+    display:grid; gap:10px; align-items:stretch;
+  }
+  .label{font-size:13px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted)}
+  .value{
+    font-variant-numeric: tabular-nums; text-align:center;
+    font-size: clamp(48px, 11vw, 120px); line-height:1; font-weight:800;
+    letter-spacing:.02em;
+    padding:10px 0; border-radius:16px; background:#0b0e13; border:1px solid #242a38;
+  }
+  .controls{
+    display:grid; gap:12px; align-content:start;
+    min-width:210px;
+  }
+  .btn{
+    all:unset; cursor:pointer; user-select:none; text-align:center; font-weight:700;
+    padding:12px 14px; border-radius:14px; border:1px solid #2c3345; background:#111420;
+    transition:transform .04s ease, box-shadow .2s ease, background .2s ease;
+  }
+  .btn:hover{box-shadow:0 6px 20px rgba(35,197,94,.15)}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:linear-gradient(180deg, #29d466, #1fb257); border-color:#2b7a4d; color:#07160d}
+  .btn.warn{background:linear-gradient(180deg, #ef4444, #dc2626); border-color:#7f1d1d; color:#fff}
+  .btn.ghost{color:#cbd5e1}
+  .stack{display:grid; gap:10px}
+  .row{display:flex; gap:12px; align-items:center}
+  input[type="number"]{
+    width:84px; padding:10px 12px; background:#0b0e13; border:1px solid #242a38; color:#cbd5e1;
+    border-radius:12px; font-weight:700; text-align:center; font-variant-numeric: tabular-nums;
+  }
+  input[type="range"]{width:100%}
+  footer{opacity:.7; text-align:center; font-size:12px}
+  .sep{align-self:stretch; width:2px; background:linear-gradient(to bottom, transparent, #2b3448 35%, #2b3448 65%, transparent); border-radius:2px}
+  @media (max-width:900px){
+    .board{grid-template-columns:1fr}
+    .sep{display:none}
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>静态倒计时 · Countdown</h1>
+      <div class="mode">
+        <span class="pill">模式：自定义时长</span>
+      </div>
+    </header>
+
+    <section class="board">
+      <div class="digits" role="group" aria-label="倒计时显示">
+        <div class="tile">
+          <div class="label">Hour</div>
+          <div id="hh" class="value">00</div>
+          <div class="row">
+            <input id="hNum" type="number" min="0" max="99" step="1" value="0" aria-label="小时数字输入">
+            <input id="hRange" type="range" min="0" max="99" step="1" value="0" aria-label="小时滑块">
+          </div>
+        </div>
+
+        <div class="tile">
+          <div class="label">Min</div>
+          <div id="mm" class="value">02</div>
+          <div class="row">
+            <input id="mNum" type="number" min="0" max="59" step="1" value="2" aria-label="分钟数字输入">
+            <input id="mRange" type="range" min="0" max="59" step="1" value="2" aria-label="分钟滑块">
+          </div>
+        </div>
+
+        <div class="tile">
+          <div class="label">Sec</div>
+          <div id="ss" class="value">00</div>
+          <div class="row">
+            <input id="sNum" type="number" min="0" max="59" step="1" value="0" aria-label="秒数字输入">
+            <input id="sRange" type="range" min="0" max="59" step="1" value="0" aria-label="秒滑块">
+          </div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="controls">
+        <div class="stack">
+          <button id="startBtn" class="btn primary">开始 (Space)</button>
+          <button id="pauseBtn" class="btn ghost">暂停 / 继续</button>
+          <button id="resetBtn" class="btn warn">重置 (R)</button>
+        </div>
+        <div class="stack" style="opacity:.8">
+          <div>提示：</div>
+          <div class="pill">支持链接参数：<code>?h=0&m=2&s=0</code></div>
+          <div class="pill">结束会响铃一次</div>
+        </div>
+      </div>
+    </section>
+
+    <footer>© 静态 HTML + 原生 JavaScript</footer>
+  </div>
+
+  <!-- 结束提示音（内嵌 wav，离线可用） -->
+  <audio id="beep">
+    <source src="data:audio/wav;base64,UklGRmQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAZGF0YUQAAAAA/////wAAAP///wAAAP///wAAAP7+/v7+/v7+/v7+/v///wAAAP///wAAAP///wAAAP///wAAAP///wAAAP7+/v7+/v7+/v7+////AAD///8AAP///wAA" type="audio/wav">
+  </audio>
+
+<script>
+(function(){
+  // Elements
+  const hh = document.getElementById('hh');
+  const mm = document.getElementById('mm');
+  const ss = document.getElementById('ss');
+  const hNum = document.getElementById('hNum');
+  const mNum = document.getElementById('mNum');
+  const sNum = document.getElementById('sNum');
+  const hRange = document.getElementById('hRange');
+  const mRange = document.getElementById('mRange');
+  const sRange = document.getElementById('sRange');
+  const startBtn = document.getElementById('startBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const beep = document.getElementById('beep');
+
+  let total = 0;     // total seconds
+  let left = 0;      // left seconds
+  let timer = null;  // interval id
+  let running = false;
+  let paused = false;
+  let endAt = 0;
+
+  // Helpers
+  const pad2 = n => String(n).padStart(2,'0');
+  const updateDisplay = (secLeft) => {
+    const h = Math.floor(secLeft / 3600);
+    const m = Math.floor((secLeft % 3600) / 60);
+    const s = secLeft % 60;
+    hh.textContent = pad2(h);
+    mm.textContent = pad2(m);
+    ss.textContent = pad2(s);
+    document.title = secLeft>0 ? `⏳ ${pad2(h)}:${pad2(m)}:${pad2(s)} — Countdown` : 'Countdown';
+  };
+
+  const readInputs = () => {
+    const h = clamp(parseInt(hNum.value||0,10), 0, 99);
+    const m = clamp(parseInt(mNum.value||0,10), 0, 59);
+    const s = clamp(parseInt(sNum.value||0,10), 0, 59);
+    return h*3600 + m*60 + s;
+  };
+
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, isFinite(v)?v:0));
+
+  const syncUIFromInputs = () => {
+    hRange.value = clamp(hNum.value,0,99);
+    mRange.value = clamp(mNum.value,0,59);
+    sRange.value = clamp(sNum.value,0,59);
+    left = readInputs();
+    total = left;
+    updateDisplay(left);
+  };
+
+  const syncInputsFromRange = () => {
+    hNum.value = hRange.value;
+    mNum.value = mRange.value;
+    sNum.value = sRange.value;
+    syncUIFromInputs();
+  };
+
+  // Main controls
+  const start = () => {
+    if (running && !paused) return;
+    if (!running){
+      total = readInputs();
+      left = total;
+      if (left <= 0) return;
+    }
+    paused = false;
+    running = true;
+    endAt = Date.now() + left*1000 + 50; // +tiny buffer
+    clearInterval(timer);
+    tick(); // instant paint
+    timer = setInterval(tick, 200);
+  };
+
+  const tick = () => {
+    left = Math.max(0, Math.round((endAt - Date.now())/1000));
+    updateDisplay(left);
+    if (left <= 0){
+      clearInterval(timer);
+      running = false;
+      paused = false;
+      try { beep.currentTime = 0; beep.play().catch(()=>{}); } catch(e){}
+    }
+  };
+
+  const pause = () => {
+    if (!running) return;
+    if (!paused){
+      paused = true;
+      clearInterval(timer);
+      left = Math.max(0, Math.round((endAt - Date.now())/1000));
+    } else {
+      // resume
+      endAt = Date.now() + left*1000 + 50;
+      paused = false;
+      clearInterval(timer);
+      timer = setInterval(tick, 200);
+    }
+  };
+
+  const reset = () => {
+    clearInterval(timer);
+    running = false; paused = false;
+    syncUIFromInputs();
+  };
+
+  // Wiring
+  [hNum,mNum,sNum].forEach(el=>el.addEventListener('input', syncUIFromInputs));
+  [hRange,mRange,sRange].forEach(el=>el.addEventListener('input', syncInputsFromRange));
+  startBtn.addEventListener('click', start);
+  pauseBtn.addEventListener('click', pause);
+  resetBtn.addEventListener('click', reset);
+
+  // Keyboard: Space start/pause, R reset
+  window.addEventListener('keydown', (e)=>{
+    if (e.code === 'Space'){ e.preventDefault(); running ? pause() : start(); }
+    if (e.key.toLowerCase() === 'r'){ reset(); }
+  });
+
+  // URL params ?h=&m=&s=
+  (function initFromQuery(){
+    const u = new URL(location.href);
+    const H = u.searchParams.get('h');
+    const M = u.searchParams.get('m');
+    const S = u.searchParams.get('s');
+    if (H!==null) hNum.value = clamp(parseInt(H,10),0,99);
+    if (M!==null) mNum.value = clamp(parseInt(M,10),0,59);
+    if (S!==null) sNum.value = clamp(parseInt(S,10),0,59);
+    syncUIFromInputs();
+  })();
+
+  // Initial paint
+  syncUIFromInputs();
+})();
+</script>
+</body>
+</html>
