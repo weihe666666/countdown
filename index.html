@@ -14,6 +14,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background 0.3s;
+  }
+  body.flash {
+    animation: flashBg 0.3s alternate infinite;
+  }
+  @keyframes flashBg {
+    from { background: #0f1115; }
+    to { background: #ef4444; }
   }
   .container {
     display: flex;
@@ -23,26 +31,26 @@
   }
   .digits {
     display: flex;
-    gap: 2vw;
+    gap: 3vw;
     align-items: center;
+    flex-wrap: wrap;
   }
   .block {
     background: #171a21;
     border: 2px solid #2c3345;
     border-radius: 20px;
     box-shadow: 0 6px 18px rgba(0,0,0,0.4);
-    padding: 1vw 2vw;
-    text-align: center;
+    padding: 1vw 3vw;
     min-width: 30vw;
   }
   .value {
-    font-size: clamp(50px, 20vw, 220px);
+    font-size: clamp(60px, 20vw, 200px);
     font-weight: bold;
     line-height: 1;
     font-variant-numeric: tabular-nums;
   }
   .label {
-    font-size: clamp(12px, 2vw, 22px);
+    font-size: clamp(14px, 2vw, 20px);
     letter-spacing: 0.15em;
     text-transform: uppercase;
     color: #94a3b8;
@@ -63,12 +71,13 @@
     font-weight: bold;
     padding: 1vw 2vw;
     border-radius: 12px;
-    font-size: clamp(14px, 3vw, 24px);
+    font-size: clamp(16px, 3vw, 26px);
     transition: transform 0.1s ease, background 0.3s ease;
   }
   button:hover { transform: scale(1.05); }
   button:active { transform: scale(0.97); }
   button.reset { background: #ef4444; color: #fff; }
+  button.pause { background: #3b82f6; color: #fff; }
   input {
     font-size: clamp(18px, 3vw, 30px);
     text-align: center;
@@ -97,7 +106,7 @@
       <input id="minInput" type="number" min="0" max="59" value="2">:
       <input id="secInput" type="number" min="0" max="59" value="0">
       <button id="startBtn">Start</button>
-      <button id="pauseBtn">Pause</button>
+      <button class="pause" id="pauseBtn">Pause</button>
       <button class="reset" id="resetBtn">Reset</button>
     </div>
   </div>
@@ -112,11 +121,14 @@ const ss = document.getElementById('ss');
 const minInput = document.getElementById('minInput');
 const secInput = document.getElementById('secInput');
 const beep = document.getElementById('beep');
+const body = document.body;
+
 let timer = null;
 let left = 0;
 let endTime = 0;
 let running = false;
 let paused = false;
+let flashing = false;
 
 function pad(n){ return String(n).padStart(2,'0'); }
 function updateDisplay(){
@@ -127,6 +139,7 @@ function updateDisplay(){
   document.title = left>0 ? `${pad(m)}:${pad(s)} ⏳` : "Countdown";
 }
 function start(){
+  stopFlash();
   if (running && !paused) return;
   if (!running){
     const m = parseInt(minInput.value)||0;
@@ -148,9 +161,11 @@ function tick(){
     running = false;
     paused = false;
     try{ beep.play(); }catch(e){}
+    startFlash();
   }
 }
 function pause(){
+  stopFlash();
   if (!running) return;
   if (!paused){
     paused = true;
@@ -164,6 +179,7 @@ function pause(){
   }
 }
 function reset(){
+  stopFlash();
   clearInterval(timer);
   running = false;
   paused = false;
@@ -171,6 +187,18 @@ function reset(){
   const s = parseInt(secInput.value)||0;
   left = m*60 + s;
   updateDisplay();
+}
+function startFlash(){
+  if (!flashing){
+    body.classList.add('flash');
+    flashing = true;
+  }
+}
+function stopFlash(){
+  if (flashing){
+    body.classList.remove('flash');
+    flashing = false;
+  }
 }
 document.getElementById('startBtn').onclick=start;
 document.getElementById('pauseBtn').onclick=pause;
